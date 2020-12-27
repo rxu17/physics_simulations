@@ -1,13 +1,17 @@
-''' Name:
-    Description:
-    Args:
-    How to Run:
+''' Name: monte_carlo_simulator.py
+    Description: Simulator script for Monte Carlo methods in Physics
+        Methods: -random number generator using LCM
+                 -random walk using various methods
+                 -radioactive decay 
+    Args: nCount
+    How to Run: python monte_carlo_simulator.py -nCount <numbers to generate>
 '''
 
 import os
 import sys
 import math
 import random
+import argparse
 import pandas as pd
 import numpy as np
 import seaborn as sb
@@ -58,28 +62,32 @@ def random_num_gen(method : str, n : int, maxN : int = None,
 
 
 def random_walk(method : str, n : int) -> dict:
-    ''' Function
+    ''' Function that generates x and y coordinates based on 
+        method of creating 2D unit steps (deltaX, deltaY)
+        as well as R values, where R is the distance from the 
+        starting point origin (0,0)
 
         Methods: 
-            radian - pick x and y between 0 and 2pi
-            directional - pick a random direction for a step of 1
-            sqrt - pick a 
-            normalize
-            avg - 
+            radian - pick deltaX and deltaY between 0 and 2pi
+            directional - pick a random direction for a step of 1 in that dir
+            sqrt - deltaX is in range [-1. 1], deltaY is +/- (1- sqrt(deltaX^2))
+            normalize - deltaX and deltaY are in range [-1, 1], not 0 and normalized
+            avg - deltaX and deltaY are in range [-sqrt(2), sqrt(2)]
 
-        Args:  method - method in list 
+        Args:  method - method in list above
                n - number of x,y pairs to generate
 
-        Returns: 
+        Returns: dictionary of R values and associated 
+                x and y values
     '''
 
     def generate_x_y(method : str, prev_x : int, prev_y : int):
         ''' Function that generates the next 2D x and y coordinate
             based on method for unit steps
 
-            Args:  method - method in list 
-                   prev_x -
-                   prev_y - 
+            Args:  method - method in list in random_walk function
+                   prev_x - previous x coordinate
+                   prev_y - previous y coordinate
 
             Returns: list of x, y pair
         '''
@@ -110,6 +118,9 @@ def random_walk(method : str, n : int) -> dict:
         elif method == "normalize":
             deltaX = random.uniform(a = -1, b = 1)
             deltaY = random.uniform(a = -1, b = 1)
+            scaled_var = math.sqrt(deltaX**2 + deltaY**2)/1
+            deltaX = deltaX/scaled_var
+            deltaY = deltaY/scaled_var
 
         elif method == "avg":
             deltaX = random.uniform(a = -(math.sqrt(2)), b = math.sqrt(2))
@@ -135,12 +146,18 @@ def vet_methods(typeRandom : str, method : str = None, rand_list : list = None,
                          xList : list = None, yList : list = None,
                          xList2 : list = None, yList2 : list = None,
                          xList3 : list = None, yList3 : list = None,
+                         xList4 : list = None, yList4 : list = None,
+                         xList5 : list = None, yList5 : list = None,
                          plot_R : bool = True):
-    ''' Function that plots the random generators
+    ''' Function that plots the random generators and random walk
+        methods
 
         Args: typeRandom - ['random_generator', 'random_walk']
               method - method of random number generating: ['simple', 'lcm']
               rand_list - input list of random numbers
+              xList ... xList5 - input list(s) of x coordinates
+              yList ... yList5 - input list(s) of y coordinates
+              plot_R - bool, if we are plotting R values vs sqrt(N)
     '''
     if typeRandom == "random_generator":
         # split our list into two, (successive pairs) and plot
@@ -156,14 +173,20 @@ def vet_methods(typeRandom : str, method : str = None, rand_list : list = None,
             plt.plot(xList, yList, label = "avg")
             plt.plot(xList2, yList2, label = "radian")
             plt.plot(xList3, yList3, label = "sqrt")
+            plt.plot(xList4, yList4, label = "directional")
+            plt.plot(xList5, yList5, label = "avg")
             plt.legend()
         else:
             plt.plot(xList, yList, color = 'blue')
-            plt.subplot(3, 1, 1)
+            plt.subplot(5, 1, 1)
             plt.plot(xList2, yList2, color = 'green')
-            plt.subplot(3, 1, 2)
+            plt.subplot(5, 1, 2)
             plt.plot(xList3, yList3, color = 'red')
-            plt.subplot(3, 1, 3)
+            plt.subplot(5, 1, 3)
+            plt.plot(xList4, yList4, color = 'yellow')
+            plt.subplot(5, 1, 4)
+            plt.plot(xList5, yList5, color = 'purple')
+            plt.subplot(5, 1, 5)
 
         plt.title("Random Walk".format(method))
         
@@ -178,17 +201,38 @@ def vet_methods(typeRandom : str, method : str = None, rand_list : list = None,
     plt.show()
 
 
-def main():
-    '''
-    '''
-    sim_list = random_num_gen(method = "simple", n = 1000, maxN = 1241)
-    lcm_list = random_num_gen(method = "lcm", n = 1000, x0 = 2, m = 1241, a = 13, c = 12)
-    vet_random_generator(typeRandom = "random_generator", method = "simple", rand_list = sim_list)
-    vet_random_generator(typeRandom = "random_generator", method = "lcm", rand_list = lcm_list)
+def parse_args():
+    ''' Parse the required args for running script which is 
+        just number of numbers to generate for now
 
-    walk_values = random_walk(method = "avg", n = 100000)
-    walk_values2 = random_walk(method = "radian", n = 100000)
-    walk_values3 = random_walk(method = "directional", n = 100000)
+        Returns: parser object to select arguments of choice
+    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-nCount', '--num_of_numbers', type = int, 
+                        default = 2, nargs='?',
+                        help="Number of numbers or steps to generate")
+
+    return(parser.parse_args())
+
+
+def main():
+    ''' Run all comparison plots for random walk generator and random
+        number generators
+    '''
+    args = parse_args()
+    # generate random values for each of the 5 methods and plot
+    sim_list = random_num_gen(method = "simple", n = args.num_of_numbers, maxN = 1241)
+    lcm_list = random_num_gen(method = "lcm", n = args.num_of_numbers, x0 = 2, m = 1241, a = 13, c = 12)
+    vet_methods(typeRandom = "random_generator", method = "simple", rand_list = sim_list)
+    vet_methods(typeRandom = "random_generator", method = "lcm", rand_list = lcm_list)
+
+    # generate walk values for each of the 5 methods and plot
+    walk_values = random_walk(method = "avg", n = args.num_of_numbers)
+    walk_values2 = random_walk(method = "radian", n = args.num_of_numbers)
+    walk_values3 = random_walk(method = "sqrt", n = args.num_of_numbers)
+    walk_values4 = random_walk(method = "directional", n = args.num_of_numbers)
+    walk_values5 = random_walk(method = "normalize", n = args.num_of_numbers)
+
 
     vet_methods(typeRandom = "random_walk", 
                          xList = walk_values['coordinates']['x'],
@@ -197,15 +241,23 @@ def main():
                          yList2 = walk_values2['coordinates']['y'],
                          xList3 = walk_values3['coordinates']['x'],
                          yList3 = walk_values3['coordinates']['y'],
+                         xList4 = walk_values4['coordinates']['x'],
+                         yList4 = walk_values4['coordinates']['y'],
+                         xList5 = walk_values5['coordinates']['x'],
+                         yList5 = walk_values5['coordinates']['y'],
                          plot_R = False)
 
-    vet_method(typeRandom = "random_walk", 
+    vet_methods(typeRandom = "random_walk", 
                          xList = [math.sqrt(x) for x in range(1, len(walk_values['r_values'])+1)],
                          yList = walk_values['r_values'],
                          xList2 = [math.sqrt(x) for x in range(1, len(walk_values2['r_values'])+1)],
                          yList2 = walk_values2['r_values'],
                          xList3 = [math.sqrt(x) for x in range(1, len(walk_values3['r_values'])+1)],
-                         yList3 = walk_values3['r_values'])
+                         yList3 = walk_values3['r_values'],
+                         xList4 = [math.sqrt(x) for x in range(1, len(walk_values4['r_values'])+1)],
+                         yList4 = walk_values4['r_values'],
+                         xList5 = [math.sqrt(x) for x in range(1, len(walk_values5['r_values'])+1)],
+                         yList5 = walk_values5['r_values'])
 
 if __name__ == "__main__":
     main()
