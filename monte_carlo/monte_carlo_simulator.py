@@ -142,6 +142,45 @@ def random_walk(method : str, n : int) -> dict:
             "coordinates" : coord})
 
 
+def simulate_radioactive_decay(decay_constant : int, Nnuc : int) -> dict:
+    ''' Decay Simulation Scheme
+        1)Assume a value for the decay constant
+        2) Start with Nnuc = total number of nuclei at t=0.
+        3) Generate a random number for each nucleus, which has not decayed yet.
+        3) Use as the basic algorithm for each nucleus:
+        4) if random number < decay_constant, the nucleus decays and Nnuc=Nnuc-1
+            else it remains.
+        5) Repeat process for remaining nuclei until we reach 0 nuclei
+
+        Args: decay_constant - the rate at which the decay will be by,  
+                                tthe higher, the faster the decay
+              Nnuc - number of nucleus to decay
+    '''
+    assert decay_constant is not None and decay_constant <= 1,\
+        "decay constant needs to be defined and <= 1"
+
+    assert Nnuc is not None and Nnuc > 0,\
+        "Nnuc needs to be defined and > 0"
+    
+    # preserve start time and initial number of nuclei
+    nucs = [1] * Nnuc
+    nuc_time = {"time":[],
+                "Nnuc":[]}
+
+    t = 0
+    n = Nnuc
+    while n > 0:
+        nuc_time['time'].append(t)
+        nuc_time['Nnuc'].append(n)
+
+        # getting nuclei left after decays
+        nucs = [1] * (n - sum([random.uniform(0, 1) < decay_constant for nuc in nucs]))
+        n = len(nucs)
+        t += 1
+       
+    return(nuc_time)
+
+
 def vet_methods(typeRandom : str, method : str = None, rand_list : list = None,
                          xList : list = None, yList : list = None,
                          xList2 : list = None, yList2 : list = None,
@@ -152,7 +191,7 @@ def vet_methods(typeRandom : str, method : str = None, rand_list : list = None,
     ''' Function that plots the random generators and random walk
         methods
 
-        Args: typeRandom - ['random_generator', 'random_walk']
+        Args: typeRandom - ['random_generator', 'random_walk', 'radioactive_decay']
               method - method of random number generating: ['simple', 'lcm']
               rand_list - input list of random numbers
               xList ... xList5 - input list(s) of x coordinates
@@ -189,7 +228,12 @@ def vet_methods(typeRandom : str, method : str = None, rand_list : list = None,
             plt.subplot(5, 1, 5)
 
         plt.title("Random Walk".format(method))
-        
+    elif typeRandom == "radioactive_decay":
+        plt.plot(xList, yList)
+        plt.title("Radioactive Decay")
+        plt.xlabel("Time")
+        plt.ylabel("Nuclei Remaining")
+
     if plot_R:
         plt.xlabel("sqrt(N)")
         plt.ylabel("R")
@@ -233,7 +277,10 @@ def main():
     walk_values4 = random_walk(method = "directional", n = args.num_of_numbers)
     walk_values5 = random_walk(method = "normalize", n = args.num_of_numbers)
 
-
+    # decay
+    decay = simulate_radioactive_decay(decay_constant = 0.9, Nnuc = args.num_of_numbers)
+    vet_methods(typeRandom = "radioactive_decay", xList = decay['time'], 
+                yList = decay['Nnuc'], plot_R = False)
     vet_methods(typeRandom = "random_walk", 
                          xList = walk_values['coordinates']['x'],
                          yList = walk_values['coordinates']['y'],
